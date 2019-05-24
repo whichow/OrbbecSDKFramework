@@ -40,6 +40,11 @@ public class Body
         get;
         set;
     }
+    public bool UserTracked
+    {
+        get;
+        set;
+    }
 
     public Body()
     {
@@ -72,7 +77,7 @@ public class Body
     }
 }
 
-public class BodyManager : MonoBehaviour
+public class BodyManager : MonoSingleton<BodyManager>
 {
     public Body CurrentBody
     {
@@ -83,15 +88,12 @@ public class BodyManager : MonoBehaviour
     }
 
     private OrbbecManager _obMgr;
-    private OrbbecUser _obUser;
-    private int _userId;
-    private Body _body;
+    private Body _body = new Body();
     private OrbbecDeviceManager _devMgr;
 
     void Start()
     {
         _devMgr = OrbbecDeviceManager.Instance;
-        _body = new Body();
 
         if (_devMgr.HasInit)
         {
@@ -125,31 +127,23 @@ public class BodyManager : MonoBehaviour
 
         var etor = users.GetEnumerator();
 
-        if (_obUser == null)
+        if (_body.OrbbecUser == null || !_body.OrbbecUser.IsInConfidence())
         {
+            if (_body.UserTracked)
+            {
+                _body.UserTracked = false;
+                Debug.Log("玩家丢失");
+            }
             while (etor.MoveNext())
             {
-                if (etor.Current.Value != null && etor.Current.Key != 0)
+                if (etor.Current.Value != null)
                 {
-                    _obUser = etor.Current.Value;
-                    _userId = etor.Current.Key;
-                    _body.OrbbecUser = _obUser;
-                    Debug.Log("检测到玩家，ID:" + _userId);
+                    _body.OrbbecUser = etor.Current.Value;
+                    _body.UserTracked = true;
+                    Debug.Log("检测到玩家，ID:" + _body.OrbbecUser.UserID);
                     return;
                 }
             }
         }
-        else
-        {
-            while (etor.MoveNext())
-            {
-                if (etor.Current.Value == _obUser)
-                {
-                    return;
-                }
-            }
-        }
-
-        _obUser = null;
     }
 }
